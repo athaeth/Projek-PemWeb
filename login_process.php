@@ -1,64 +1,69 @@
 <?php
-// 1. Mulai SESSION di baris paling atas!
 session_start();
 
-// 2. Panggil file koneksi database
 include '../config/db.php';
 
-// 3. Pastikan request adalah POST
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
-    // 4. Ambil data dari form
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    // 5. Validasi dasar
     if (empty($username) || empty($password)) {
         header('Location: ../login.php?error=1');
         exit;
     }
 
-    try {
-        // 6. Cari user di database berdasarkan username
-        $stmt = $db->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $sql = "SELECT id, username, password, full_name, role FROM users WHERE username = ?";
+    
+    $stmt = $db->prepare($sql);
+    
+    if ($stmt === false) {
+        die("Error preparing statement: ". $db->error);
+    }
 
-        // 7. Verifikasi user dan password
-        // $user -> Cek apakah usernya ada
-        // password_verify(...) -> Cek apakah password yang diinput sama dengan hash di DB
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 1) {
+        $user = $result->fetch_assoc();
         
-        if ($user && password_verify($password, $user['password'])) {
-            // Jika login berhasil!
+        if (password_verify($password, $user['password'])) {
             
-            // 8. Simpan data user ke SESSION
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['full_name'] = $user['full_name'];
-            $_SESSION['role'] = $user['role']; // Ini penting untuk bedakan admin/user
+            $_SESSION['role'] = $user['role'];
 
-            // 9. Redirect berdasarkan ROLE
+            // PERBAIKAN: Tutup koneksi SEBELUM redirect
+            $stmt->close();
+            $db->close();
+
             if ($user['role'] == 'admin') {
-                header('Location: ../admin/dashboard.php'); // Arahkan admin ke dashboard admin
+                header('Location: ../admin/dashboard.php');
             } else {
-                header('Location: ../index.php'); // Arahkan user biasa ke index
+                header('Location: ../index.php');
             }
             exit;
 
         } else {
-            // Jika user tidak ditemukan atau password salah
+            // PERBAIKAN: Tutup koneksi SEBELUM redirect
+            $stmt->close();
+            $db->close();
             header('Location: ../login.php?error=1');
             exit;
         }
-
-    } catch (PDOException $e) {
-        // Error database
-        header('Location: ../login.php?error=db');
+    } else {
+        // PERBAIKAN: Tutup koneksi SEBELUM redirect
+        $stmt->close();
+        $db->close();
+        header('Location: ../login.php?error=1');
         exit;
     }
+    
+    // Kita hapus kode yang error kuning dari sini
 
 } else {
-    // Jika diakses langsung, tendang ke login
     header('Location: ../login.php');
     exit;
 }
