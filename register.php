@@ -10,7 +10,6 @@
   <title>Registrasi - PerpusPintar</title>
   <link href="assets/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* Sedikit style agar form di tengah */
     body {
       display: flex;
       align-items: center;
@@ -64,4 +63,5 @@
 
   <script src="assets/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
